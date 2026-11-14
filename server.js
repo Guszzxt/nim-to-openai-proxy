@@ -90,7 +90,7 @@ const MODEL_MAPPING = {
   'kimi': 'moonshotai/kimi-k3.1-pro',
   'mistral-large': 'mistralai/mistral-large-4-1t-a52b', // always the damn comma
   'glm': 'z-ai/glm-5.3-flash',
-  'nemotron-vl': 'nvidia/nemotron-3.5-super-vl',
+  'nemotron-vl': 'nvidia/nemotron-3.5-super-vl-120b-a12b',
   'deepseek': 'deepseek-ai/deepseek-v4-flash',
   'deepseek-pro': 'deepseek-ai/deepseek-v4-pro',
 };
