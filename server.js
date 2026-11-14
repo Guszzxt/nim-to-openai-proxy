@@ -89,6 +89,7 @@ const MODEL_MAPPING = {
   'm3.1': 'minimaxai/minimax-m3.1-flash',
   'kimi': 'moonshotai/kimi-k3.1-pro',
   'mistral-large': 'mistralai/mistral-large-4-1t-a52b', // always the damn comma
+  'glm': 'z-ai/glm-5.3',
 };
 
 // Used when an unrecognized alias is requested. Must point at a live model.
