@@ -460,6 +460,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     temperature: temperature ?? 0.7,
     max_tokens: Math.min(max_tokens ?? 8192, MAX_TOKENS_LIMIT),
     stream: stream || false,
+    chat_template_kwargs: { clear_thinking: true }
 };
     
     const { response, model: usedModel } = await callWithFallback(
