@@ -282,7 +282,7 @@ async function callWithFallback(baseRequest, models, enableThinking, clientReaso
 
   // Skip cooling-down models; fall back to the full list if that empties the chain.
   const activeModels = models.filter(m => !isInCooldown(m));
-  const attemptOrder = activeModels.length > 0 ? activeModels : models;
+ const attemptOrder = activeModels.length > 0 ? activeModels : models;
 
   for (const model of attemptOrder) {
     const reasoningPayload = getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTools);
@@ -784,10 +784,14 @@ app.use((req, res) => {
 
 // ─── Startup ──────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[PROXY] Hybrid proxy running on port ${PORT}`);
   console.log(`[PROXY] Max tokens limit: ${MAX_TOKENS_LIMIT}`);
   validateModels().catch(err => {
     console.error('[VALIDATION] Startup check failed:', err.message);
   });
 });
+
+// Keep-Alive para evitar que o Railway corte a conexão com a NVIDIA
+server.keepAliveTimeout = 120000; // 120 segundos
+server.headersTimeout = 125000;   // 125 segundos
