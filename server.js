@@ -468,14 +468,12 @@ app.post('/v1/chat/completions', async (req, res) => {
         // reasoning_effort (translated per-model by getReasoningPayload).
         const { model: _droppedModel, reasoning_effort: _droppedReasoningEffort, ...forwardedFields } = req.body;
 
-        const baseRequest = {
-            ...forwardedFields,
-            temperature: temperature ?? 0.7,
-            max_tokens: Math.min(max_tokens ?? 8192, MAX_TOKENS_LIMIT),
-            stream: stream || false,
-            chat_template_kwargs: { clear_thinking: true }
-        };
-
+const baseRequest = {
+    ...forwardedFields,
+    temperature: temperature ?? 0.7,
+    max_tokens: Math.min(max_tokens ?? 8192, MAX_TOKENS_LIMIT),
+    stream: stream || false
+};
         const { response, model: usedModel } = await callWithFallback(
             baseRequest,
             modelChain,
@@ -495,7 +493,8 @@ app.post('/v1/chat/completions', async (req, res) => {
         const inlineReasoning = req.headers['x-reasoning-format'] === 'inline';
 
         if (stream) {
-            const decoder = new StringDecoder('utf8');      let buffer = '';
+            const decoder = new StringDecoder('utf8');
+          let buffer = '';
       let reasoningOpen = false;
       let doneSent = false;
       let cleanedUp = false;
