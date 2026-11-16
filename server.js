@@ -436,53 +436,66 @@ app.get('/v1/models', async (req, res) => {
 });
 
 app.post('/v1/chat/completions', async (req, res) => {
-  let streamEndedCleanly = false;
-  let upstreamStream = null;
+    let streamEndedCleanly = false;
+    let upstreamStream = null;
+    let keepAliveInterval = null;
 
-  try {
-    const { model, max_tokens, temperature, stream, reasoning_effort } = req.body;
+    try {
+        const { model, max_tokens, temperature, stream, reasoning_effort } = req.body;
 
-    let primaryModel = MODEL_MAPPING[model];
-    if (!primaryModel) {
-      console.warn(`[PROXY] Unknown model alias "${model}", falling back to default: ${DEFAULT_MODEL}`);
-      primaryModel = DEFAULT_MODEL;
-    }
+        if (stream) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
 
-    // De-dupe: avoids retrying the same model twice if it's also in FALLBACK_MODELS.
-    const modelChain = [...new Set([primaryModel, ...FALLBACK_MODELS])];
+            keepAliveInterval = setInterval(() => {
+                if (!res.writableEnded && !res.destroyed) {
+                    res.write(':\n\n');
+                }
+            }, 5000);
+        }
 
-    // Forward all client fields except model (replaced per-attempt) and
-    // reasoning_effort (translated per-model by getReasoningPayload).
-    const { model: _droppedModel, reasoning_effort: _droppedReasoningEffort, ...forwardedFields } = req.body;
+        let primaryModel = MODEL_MAPPING[model];
+        if (!primaryModel) {
+            console.warn(`[PROXY] Unknown model alias "${model}", falling back to default: ${DEFAULT_MODEL}`);
+            primaryModel = DEFAULT_MODEL;
+        }
 
-    const baseRequest = {
-    ...forwardedFields,
-    temperature: temperature ?? 0.7,
-    max_tokens: Math.min(max_tokens ?? 8192, MAX_TOKENS_LIMIT),
-    stream: stream || false,
-    chat_template_kwargs: { clear_thinking: true }
-};
-    
-    const { response, model: usedModel } = await callWithFallback(
-      baseRequest,
-      modelChain,
-      ENABLE_THINKING_MODE,
-      reasoning_effort,
-      !!req.body.tools
-    );
+        // De-dupe: avoids retrying the same model twice if it's also in FALLBACK_MODELS.
+        const modelChain = [...new Set([primaryModel, ...FALLBACK_MODELS])];
 
-    upstreamStream = response.data;
-    console.log('[PROXY] Model used:', usedModel);
+        // Forward all client fields except model (replaced per-attempt) and
+        // reasoning_effort (translated per-model by getReasoningPayload).
+        const { model: _droppedModel, reasoning_effort: _droppedReasoningEffort, ...forwardedFields } = req.body;
 
-    const inlineReasoning = req.headers['x-reasoning-format'] === 'inline';
+        const baseRequest = {
+            ...forwardedFields,
+            temperature: temperature ?? 0.7,
+            max_tokens: Math.min(max_tokens ?? 8192, MAX_TOKENS_LIMIT),
+            stream: stream || false,
+            chat_template_kwargs: { clear_thinking: true }
+        };
 
-    if (stream) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
+        const { response, model: usedModel } = await callWithFallback(
+            baseRequest,
+            modelChain,
+            ENABLE_THINKING_MODE,
+            reasoning_effort,
+            !!req.body.tools
+        );
 
-      const decoder = new StringDecoder('utf8');
-      let buffer = '';
+        if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = null;
+        }
+
+        upstreamStream = response.data;
+        console.log('[PROXY] Model used:', usedModel);
+
+        const inlineReasoning = req.headers['x-reasoning-format'] === 'inline';
+
+        if (stream) {
+            const decoder = new StringDecoder('utf8');      let buffer = '';
       let reasoningOpen = false;
       let doneSent = false;
       let cleanedUp = false;
@@ -741,10 +754,13 @@ app.post('/v1/chat/completions', async (req, res) => {
 
       res.json(openaiResponse);
     }
-  } catch (error) {
+} catch (error) {
+    if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+    }
     console.error('[PROXY] Fatal error:', error.message);
     console.error('[PROXY] NIM response:', error.response?.data);
-
     if (!res.headersSent) {
       // Express only sets Content-Type if unset; force JSON in case the
       // streaming branch already set text/event-stream before failing.
