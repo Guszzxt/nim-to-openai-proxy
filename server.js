@@ -77,8 +77,7 @@ const MODEL_MAPPING = {
   'gemini-turbo': 'nvidia/llama3-chatqa-1.5-70b',
   'gpt-3.5o': 'nvidia/nemotron-3.5-lightning-30b-a3b',
   'gpt-4-flash': 'deepseek-ai/deepseek-v4.1-flash',
-  'gpt-4o': 'stepfun-ai/step-5-preview',
-  'mistral': 'mistralai/mistral-large-2-instruct', 
+  'gpt-4o': 'stepfun-ai/step-5-preview', 
   'mistral-turbo': 'nv-mistralai/mistral-nemo-12b-instruct',
   'mistral-pro': 'mistralai/mistral-7b-instruct-v0.3', 
   'mistral-fast': 'nvidia/mistral-nemo-minitron-8b-8k-instruct', 
@@ -90,6 +89,7 @@ const MODEL_MAPPING = {
   'deepseek': 'deepseek-ai/deepseek-v4.1-flash',
   'mistralai': 'mistralai/mistral-large-4-1t-a52b',
   'trauma': 'nvidia/nemotron-3-ultra-550b-a55b',
+  'mistral': 'mistralai/mistral-large-4-1t-a52b'
 };
 
 // Used when an unrecognized alias is requested. Must point at a live model.
